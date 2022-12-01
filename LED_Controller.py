@@ -250,7 +250,7 @@ class Led_Controller:
 
 	def blink_lights(self, device, current_color):
 		for i in range(5): #blink 5 times
-			PWM.changeColor(self.pwm, device, 1000, 0, 0) #turn lights off to make them blink
+			PWM.changeColor(self.pwm, device, 0, 0, 0) #turn lights off to make them blink
 			time.sleep(.1)
 			PWM.changeColor(self.pwm, device, current_color[0], current_color[1], current_color[2]) # turn lights on to make them blink
 			time.sleep(.04)
