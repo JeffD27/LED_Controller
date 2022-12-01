@@ -124,7 +124,7 @@ class Led_Controller:
 					if not self.mode_button_pressed:
 						for device in self.pwm.devices_dict:
 							self.mode_color_dict[device] = self.pwm.get_current_color(device)
-							self.pwm.changeColor(device, red = 1000, green = 1000, blue = 1000)
+							self.pwm.changeColor(device, red = 0, green = 1000, blue = 1000)
 					else:
 						for color_tup in self.mode_color_dict.values():
 							red = color_tup[0]
