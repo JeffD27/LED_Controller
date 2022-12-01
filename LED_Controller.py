@@ -17,7 +17,7 @@ class Led_Controller:
 
 
 		self.pi = pigpio.pi()
-	#	self.pi.write(27, 1)
+	#	self.pi.write(27, 1) test
 
 		self.pwm = PWM()
 		self.device_lst = []
