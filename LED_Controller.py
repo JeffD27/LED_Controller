@@ -38,7 +38,7 @@ class Led_Controller:
 		self.mode_button_pressed = False
 		self.reserved_btns = ["ABS_X", "ABS_Y","ABS_RX", "ABS_RY", 'SYN_REPORT', "SYN_DROPPED", "BTN_THUMBL", "BTN_SELECT", "BTN_START", "BTN_NORTH", "BTN_SOUTH", "BTN_EAST"]
 		for devices in self.pwm.device_lst:
-			self.blink_lights(device, (1000, 0, 500)
+			self.blink_lights(device, (1000, 0, 500))
 		while True:
 
 			self.events = get_gamepad()
