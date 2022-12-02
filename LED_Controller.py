@@ -5,6 +5,7 @@ from inputs import get_gamepad
 from datetime import datetime as dt
 import datetime
 from inputs import get_gamepad
+import os
 import pigpio
 from pwm_dma import PWM
 
@@ -37,21 +38,33 @@ class Led_Controller:
 		self.mode_color_dict = {}
 		self.mode_button_pressed = False
 		self.reserved_btns = ["ABS_X", "ABS_Y","ABS_RX", "ABS_RY", 'SYN_REPORT', "SYN_DROPPED", "BTN_THUMBL", "BTN_SELECT", "BTN_START", "BTN_NORTH", "BTN_SOUTH", "BTN_EAST"]
+	
 
 		while True:
-
+			print("starting loop")
 			self.events = get_gamepad()
+			self.event_codes = []
+			for event in self.events:
+				self.event_codes.append(event.code)
+				print(event.code)
+				if event.code == "ABS_HAT0Y":
+					while event.state == 1:
+						for event_2 in get_gamepad():
+							if event_2.code == "ABS_RZ" and event_2.state > 100:
+								print("rebooting")
+								os.system('sudo reboot')
 			if self.unlock and dt.now() > self.unlock_time + datetime.timedelta(seconds = 10):
 				self.unlock = False
 			if self.start_btn and dt.now() > self.start_btn_time + datetime.timedelta(seconds = 3):
 				self.start_btn = False
 			if self.freeze_buttons and dt.now() > self.freeze_time + datetime.timedelta(seconds = 1):
 				self.freeze_buttons = False
-
-
+			
+			
 			for event in self.events: #iterate through any event triggered by the gamepad
 				#print("type:", event.ev_type, "event code:", event.code, "state:", event.state)
-
+			
+				
 				if event.code == "ABS_X" and event.state > 30000 and self.freeze_buttons == False: #state > 9000 means the joystick is over to the right far
 					if self.unlock: self.unlock_time = dt.now()
 					if self.x > 0 and ((dt.now() - self.start) > (datetime.timedelta(seconds = 1))):
