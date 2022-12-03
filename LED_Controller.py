@@ -40,6 +40,8 @@ class Led_Controller:
 		self.reserved_btns = ["ABS_X", "ABS_Y","ABS_RX", "ABS_RY", 'SYN_REPORT', "SYN_DROPPED", "BTN_THUMBL", "BTN_SELECT", "BTN_START", "BTN_NORTH", "BTN_SOUTH", "BTN_EAST"]
 	
 
+		for devices in self.pwm.device_lst:
+			self.blink_lights(device, (1000, 0, 500)
 		while True:
 			print("starting loop")
 			self.events = get_gamepad()
@@ -71,13 +73,13 @@ class Led_Controller:
 						#self.x = 0
 						print('resetting')
 						self.start = dt.now()
-						self.blink_lights("forward")
+						self.setup_blink_lights("forward")
 						break
 
 					if self.x > 0 and ((dt.now() - self.start) < (datetime.timedelta(seconds = .8))): # if the data comes within .8 seconds, ignore it
 						#print("breaking")
 						break
-					self.blink_lights("forward")
+					self.setup_blink_lights("forward")
 
 				elif event.code == "ABS_X" and event.state < -30000 and self.freeze_buttons == False: # < -9000 means the joystick is over to the left far
 					print(event.state, 'state')
@@ -87,7 +89,7 @@ class Led_Controller:
 						print('resetting')
 						self.start = dt.now()
 						self.color_select = None
-						self.blink_lights("backward")
+						self.setup_blink_lights("backward")
 						break
 
 					if self.x > 0 and ((dt.now() - self.start) < (datetime.timedelta(seconds = .8))): # if the data comes within .8 seconds, ignore it
@@ -237,7 +239,7 @@ class Led_Controller:
 		print(red, green, blue)
 		self.pwm.changeColor(self.selection, red, green, blue)
 
-	def blink_lights(self, direction):
+	def setup_blink_lights(self, direction):
 
 		self.x += 1
 		self.start = dt.now()
@@ -258,12 +260,14 @@ class Led_Controller:
 		current_color = PWM.get_current_color(self.pwm, self.selection)
 		print("blinking")
 		current_color = self.pwm.get_current_color(self.selection)
-		for i in range(5): #blink 5 times
-			PWM.changeColor(self.pwm, self.selection, 0, 0, 0) #turn lights off to make them blink
-			time.sleep(.1)
-			PWM.changeColor(self.pwm, self.selection, current_color[0], current_color[1], current_color[2]) # turn lights on to make them blink
-			time.sleep(.04)
+		self.blink_lights(self.selection, current_color)
 
-		PWM.changeColor(self.pwm, self.selection, current_color[0], current_color[1], current_color[2]) #return lights to previous color
+	def blink_lights(self, device, current_color):
+		for i in range(5): #blink 5 times
+			PWM.changeColor(self.pwm, device, 0, 0, 0) #turn lights off to make them blink
+			time.sleep(.1)
+			PWM.changeColor(self.pwm, device, current_color[0], current_color[1], current_color[2]) # turn lights on to make them blink
+			time.sleep(.04)
+			PWM.changeColor(self.pwm, self.selection, current_color[0], current_color[1], current_color[2]) #return lights to previous color
 
 Led_Controller()
