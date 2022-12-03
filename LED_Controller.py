@@ -41,7 +41,7 @@ class Led_Controller:
 	
 
 		for devices in self.pwm.device_lst:
-			self.blink_lights(device, (1000, 0, 500)
+			self.blink_lights(device, (1000, 0, 500))
 		while True:
 			print("starting loop")
 			self.events = get_gamepad()
