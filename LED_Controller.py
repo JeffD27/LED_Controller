@@ -12,7 +12,7 @@ import sys
 
 #lets see if this shows up
 
-time.sleep(2)
+time.sleep(30)
 import pigpio
 from pwm_dma import PWM
 
