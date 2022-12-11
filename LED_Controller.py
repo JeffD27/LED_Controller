@@ -147,6 +147,7 @@ class Led_Controller:
 					if self.start_btn and self.selection is not None:
 						print("making red")
 						self.pwm.changeColor(self.selection, red = 1000, green = 0, blue = 0) #change the color to red
+						self.start_btn = False 
 					else: self.color_select = 'red'
 
 				#change color with start button
@@ -154,12 +155,14 @@ class Led_Controller:
 					if self.start_btn and self.selection is not None:
 						print("making green")
 						self.pwm.changeColor(self.selection, red = 0, green = 1000, blue = 0) #change the color to green
+						self.start_btn = False
 					else: self.color_select = 'green'
 
 				elif event.code == "BTN_NORTH" and event.state == 1: #for some reason this is x on the xbox controller
 					if self.start_btn and self.selection is not None:
 						print("making blue")
 						self.pwm.changeColor(self.selection, red = 0, green = 0, blue = 1000) #change the color to blue
+						self.start_btn = False
 					else: self.color_select = 'blue'
 				elif event.code == "BTN_START" and event.state == 1:
 					self.start_btn = True
@@ -307,4 +310,4 @@ class Led_Controller:
 try:
 	Led_Controller()
 finally:
-	os.unlink(pidfile)
+	os.unlink(pidfile) #for testing to see if program is already running
