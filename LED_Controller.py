@@ -10,7 +10,7 @@ import os
 
 import sys
 
-
+#check and make sure it's not already running
 pid = str(os.getpid())
 pidfile = "/tmp/led_controller.pid"
 if os.path.isfile(pidfile):
@@ -19,6 +19,7 @@ if os.path.isfile(pidfile):
 file = open(pidfile, "w")
 file.write(pid)
 file.close
+
 time.sleep(2)
 
 import pigpio
@@ -27,7 +28,7 @@ from pwm_dma import PWM
 
 while True:
 	try:
-		os.system("sudo pigpiod")
+		os.system("sudo pigpiod") #start the pigpio dameon.
 		break
 	except:
 		print("Excepting")
@@ -38,13 +39,9 @@ while True:
 class Led_Controller:
 
 	def __init__(self):
-		#GPIO.setmode(GPIO.BCM)
-		#GPIO.setwarnings(False)
-		#GPIO.setup(24, GPIO.OUT)
 
+		#set variables:
 		self.pi = pigpio.pi()
-	#	self.pi.write(27, 1) test
-
 		self.pwm = PWM()
 		self.device_lst = []
 		for device in self.pwm.devices_dict.keys():
@@ -59,15 +56,15 @@ class Led_Controller:
 		self.start_btn = False
 		self.freeze_buttons = False
 		self.customize = False
-		self.color_dict = {}
+		self.color_dict = {} #for custom colors
 		self.mode_color_dict = {}
 		self.mode_button_pressed = False
 		self.reserved_btns = ["ABS_X", "ABS_Y","ABS_RX", "ABS_RY", 'SYN_REPORT', "SYN_DROPPED", "BTN_THUMBL", "BTN_SELECT", "BTN_START", "BTN_NORTH", "BTN_SOUTH", "BTN_EAST"]
 
 
-		for devices in self.pwm.devices_dict.keys():
+		for devices in self.pwm.devices_dict.keys(): #blink lights to show that it is on
 			print('initating blink')
-			self.blink_lights(device, (1000, 0, 500))
+			self.blink_lights(device, (0, 200, 1000)) #arbitruary color. mostly blue with a little green
 		while True:
 			print("starting loop")
 
@@ -87,12 +84,15 @@ class Led_Controller:
 			for event in self.events: #iterate through any event triggered by the gamepad
 				#print("type:", event.ev_type, "event code:", event.code, "state:", event.state)
 
-				if event.code == "ABS_HAT0Y":
-					while event.state == 1:
-						for event_2 in get_gamepad():
-							if event_2.code == "ABS_RZ" and event_2.state > 100:
+				#reboot
+				if event.code == "ABS_HAT0Y": #d-pad
+					while event.state == 1: #while the d-pad is pressed
+						for event_2 in get_gamepad(): #get the events going on at the same time
+							if event_2.code == "ABS_RZ" and event_2.state > 100: #if the rear right trigger is pressed
 								print("rebooting")
-								os.system('sudo reboot')
+								os.system('sudo reboot') #reboot
+
+				#scroll with left joystick to the right
 				if event.code == "ABS_X" and event.state > 30000 and self.freeze_buttons == False: #state > 9000 means the joystick is over to the right far
 					if self.unlock: self.unlock_time = dt.now()
 					if self.x > 0 and ((dt.now() - self.start) > (datetime.timedelta(seconds = 1))):
@@ -105,14 +105,14 @@ class Led_Controller:
 					if self.x > 0 and ((dt.now() - self.start) < (datetime.timedelta(seconds = .8))): # if the data comes within .8 seconds, ignore it
 						#print("breaking")
 						break
-					self.setup_blink_lights("forward")
+					self.setup_blink_lights("forward") #blink to let user know the selection
 
+				#scroll with left joystick to the left
 				elif event.code == "ABS_X" and event.state < -30000 and self.freeze_buttons == False: # < -9000 means the joystick is over to the left far
 					#print(event.state, 'state')
 					if self.unlock: self.unlock_time = dt.now()
 					if self.x > 0 and ((dt.now() - self.start) > (datetime.timedelta(seconds = 1))):
 						#self.x = 0
-						print('resetting')
 						self.start = dt.now()
 						self.color_select = None
 						self.setup_blink_lights("backward")
@@ -122,12 +122,14 @@ class Led_Controller:
 						#print("breaking")
 						break
 
-				elif event.code == "BTN_THUMBL":
+				#unlock to change color
+				elif event.code == "BTN_THUMBL": #push down on the center of the left joystick
 					if self.unlock: self.unlock_time = dt.now()
 					self.unlock = True
 					self.color_select = None
 					self.unlock_time = dt.now()
 
+				#change color with left joystick
 				elif event.code == "ABS_Y" and (event.state > 8000 or event.state < -8000):
 					if self.unlock: self.unlock_time = dt.now()
 					if self.unlock: self.freeze_buttons = True
@@ -141,32 +143,33 @@ class Led_Controller:
 						self.adjust_brightness(event.state, "green")
 					elif self.unlock and self.color_select == 'blue':
 						self.adjust_brightness(event.state, "blue")
-				elif event.code == "BTN_EAST" and event.state == 1:
+				elif event.code == "BTN_EAST" and event.state == 1: #BTN_EAST is "B" on x-box, event state = 1 means it pressed
 					if self.start_btn and self.selection is not None:
 						print("making red")
-						self.pwm.changeColor(self.selection, red = 1000, green = 0, blue = 0)
+						self.pwm.changeColor(self.selection, red = 1000, green = 0, blue = 0) #change the color to red
 					else: self.color_select = 'red'
 
-				elif event.code == "BTN_SOUTH" and event.state == 1:
+				#change color with start button
+				elif event.code == "BTN_SOUTH" and event.state == 1: #this is "A" on the xbox controller
 					if self.start_btn and self.selection is not None:
 						print("making green")
-						self.pwm.changeColor(self.selection, red = 0, green = 1000, blue = 0)
+						self.pwm.changeColor(self.selection, red = 0, green = 1000, blue = 0) #change the color to green
 					else: self.color_select = 'green'
-				elif event.code == "BTN_NORTH" and event.state == 1: #for some reason this is x on the xbox controller
 
+				elif event.code == "BTN_NORTH" and event.state == 1: #for some reason this is x on the xbox controller
 					if self.start_btn and self.selection is not None:
 						print("making blue")
-						self.pwm.changeColor(self.selection, red = 0, green = 0, blue = 1000)
+						self.pwm.changeColor(self.selection, red = 0, green = 0, blue = 1000) #change the color to blue
 					else: self.color_select = 'blue'
 				elif event.code == "BTN_START" and event.state == 1:
 					self.start_btn = True
 					self.start_btn_time = dt.now()
-				elif event.code == "BTN_MODE" and event.state == 1:
-					if not self.mode_button_pressed:
+				elif event.code == "BTN_MODE" and event.state == 1: #this is the xbox logo button
+					if not self.mode_button_pressed: #if we are not already in white mode
 						for device in self.pwm.devices_dict:
-							self.mode_color_dict[device] = self.pwm.get_current_color(device)
-							self.pwm.changeColor(device, red = 1000, green = 1000, blue = 1000)
-					else:
+							self.mode_color_dict[device] = self.pwm.get_current_color(device) #keep track of current color to reuse after we change it back from white
+							self.pwm.changeColor(device, red = 1000, green = 1000, blue = 1000) #turn all Circuits white
+					else: #return to previos color
 						for color_tup in self.mode_color_dict.values():
 							red = color_tup[0]
 							green = color_tup[1]
@@ -175,12 +178,16 @@ class Led_Controller:
 							self.pwm.changeColor(device, red, green, blue) #change color back from white to previous color
 					if self.mode_button_pressed == False: self.mode_button_pressed = True
 					else: self.mode_button_pressed = False
-				elif event.code == "BTN_SELECT":
+				#customize
+				elif event.code == "BTN_SELECT": #allow any button except reserved_btns to save a color
 					self.unlock_customize(event.state)
+
 				elif self.customize == True and event.code not in self.reserved_btns:
-					if self.freeze_buttons == True:
+					if self.freeze_buttons == True: #things happen to fast on a controller, and sometimes you don't want buttons to do anything.
 						continue
-					if self.unlock: self.set_custom_color(event.code)
+					if self.unlock: self.set_custom_color(event.code) #set color to button
+
+				#if the button is a customized color button, change the color to that custom color
 				elif event.code in self.color_dict.keys():
 					red = self.color_dict[event.code][0]
 					green = self.color_dict[event.code][1]
@@ -290,13 +297,13 @@ class Led_Controller:
 		current_color = self.pwm.get_current_color(self.selection)
 		self.blink_lights(self.selection, current_color)
 
-	def blink_lights(self, device, current_color):
+	def blink_lights(self, device, color):
 		for i in range(5): #blink 5 times
 			PWM.changeColor(self.pwm, device, 0, 0, 0) #turn lights off to make them blink
 			time.sleep(.1)
-			PWM.changeColor(self.pwm, device, current_color[0], current_color[1], current_color[2]) # turn lights on to make them blink
+			PWM.changeColor(self.pwm, device, color[0], color[1], color[2]) # turn lights on to make them blink
 			time.sleep(.04)
-			PWM.changeColor(self.pwm, self.selection, current_color[0], current_color[1], current_color[2]) #return lights to previous color
+			PWM.changeColor(self.pwm, self.selection, color[0], color[1], color[2]) #return lights to previous color
 try:
 	Led_Controller()
 finally:
