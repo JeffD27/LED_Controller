@@ -34,7 +34,7 @@ while True:
 
 
 
-os.system("sudo pigpiod") #start pigpiod
+#os.system("sudo pigpiod") #start pigpiod
 class Led_Controller:
 
 	def __init__(self):
