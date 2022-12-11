@@ -98,7 +98,7 @@ All White acrross all circuits: hit the middle Xbox logo. hit it again to return
 
 #### Setting and selecting custom colors:
 
-When adjusted to the color you like hold down "select" then hit any of the back buttons or "Y". The color is now set to that button. Change the color and hit that button to return to the customized color.
+When adjusted to the color you like, click the joystick down in the center, then hold down "select" then hit any of the back buttons or "Y". The color is now set to that button. Change the color and hit that button to return to the customized color.
 
 #### Reboot the Raspberry Pi
 
