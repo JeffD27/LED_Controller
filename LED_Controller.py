@@ -1,5 +1,6 @@
 
 import time
+time.sleep(2)
 from inputs import devices
 from inputs import get_gamepad
 from datetime import datetime as dt
@@ -11,7 +12,7 @@ import sys
 
 #lets see if this shows up
 
-time.sleep(2)
+
 import pigpio
 from pwm_dma import PWM
 
