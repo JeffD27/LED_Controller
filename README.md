@@ -2,7 +2,7 @@
 ## **A simple driver for the xbox controller to control LED light strips.**
 
 This code is designed to be used with a Raspberry Pi 4 to control led strip lighting with any videogame controller (I used an X-Box Controller). 
-
+Easily adjust the color with the joystick or set customized colors.
 
 ## The Circuit: 
 
@@ -10,9 +10,9 @@ This code is designed to be used with a Raspberry Pi 4 to control led strip ligh
 
 The circuit that needs to built, will use a mosfet and a 10k resistor for every color that needs to be controlled. 
 
-The 10k resistor goes from gate of the mosfet to ground (or to the source pin on the mosfet, which is also connected to ground). 
+Each 10k resistor goes from gate of each mosfet to ground. Note: it can also go between the gate of the mosfet and the source pin of the mosfet (as shown above) because the soure pin is also connected to ground). 
 
-The GPIO pins connect to the gate of the mosfet and also one end of the 10k resistor.
+The GPIO pins connect to the gates of the mosfets and also to one end of the 10k resistor.
 
 12v ground should connect to the raspberry pi ground and to the source pin of each mosfet (as well as the 10k resistor). 
 
@@ -35,7 +35,7 @@ Although, not fully tested, the program should work fine with less than three ci
 
 **Blue:** GPIO 23
 
-Circuit Two:
+### Circuit Two:
 
 **Red:** GPIO 24
 
@@ -43,7 +43,7 @@ Circuit Two:
 
 **Blue:** GPIO 21
 
-Circuit Three:
+### Circuit Three:
 
 **Red:** GPIO 16
 
@@ -54,8 +54,10 @@ Circuit Three:
                             
                             
                             
-Note: if a different GPIO pins are used you will need to edit the python dictionary called self.pin_dict in [pwm_dma.py](/pwm_dma.py).
+Note: if different GPIO pins are used you will need to edit the python dictionary called self.pin_dict in [pwm_dma.py](/pwm_dma.py) with the appropriate pin numbers.
 
+## What are mosfets, and why do I need them?:
+The problem all stems from the fact that you can't run LED strip lights with the 3.3v off of the GPIO pins from the Raspberry Pi. It is simply not enough voltage. However, we can use a mosfet to essentially detect the voltage output of the GPIO pin and mimic that respective output on the 12 volt circuit. So if the GPIO pin voltage is reduced, so too will the 12 volt circuit. For more info see [this tutorial](https://dordnung.de/raspberrypi-ledstrip/).
 
 ## Dependencies
 
