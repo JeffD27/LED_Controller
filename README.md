@@ -6,7 +6,8 @@ Easily adjust the color with the joystick or set customized colors.
 
 ## The Circuit: 
 
-![circuit](https://user-images.githubusercontent.com/53206149/206923802-ec7b8638-f509-4cdd-aa1a-2599685ec2c4.png)
+![circuit](https://user-images.githubusercontent.com/53206149/206931516-39050a2c-bb77-44d2-bfe4-487b7e7f8cca.png)
+
 
 The circuit that needs to built, will use a mosfet and a 10k resistor for every color that needs to be controlled. 
 
