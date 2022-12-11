@@ -19,7 +19,7 @@ if os.path.isfile(pidfile):
 file = open(pidfile, "w")
 file.write(pid)
 file.close
-time.sleep(30)
+time.sleep(2)
 
 import pigpio
 from pwm_dma import PWM
