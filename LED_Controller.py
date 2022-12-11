@@ -15,7 +15,7 @@ pid = str(os.getpid())
 pidfile = "/tmp/led_controller.pid"
 if os.path.isfile(pidfile):
 	print("%s already exists, exiting" % pidfile)
-	sys.exit()
+	#sys.exit()
 file = open(pidfile, "w")
 file.write(pid)
 file.close
