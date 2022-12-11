@@ -71,7 +71,7 @@ To scroll through each circuit, hit the left joystick to the left or right. The 
 
 #### Unlock to make changes
 
-Hit down on the left joystick to unlock and make changes. This prevents accidental light changes when the controller is handled. 
+Click down on the center of the left joystick to unlock and make changes. This prevents accidental light changes when the controller is handled. 
 
 #### Adjust brightness
 
