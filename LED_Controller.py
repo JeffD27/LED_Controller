@@ -1,4 +1,4 @@
-import RPi.GPIO as GPIO
+
 import time
 from inputs import devices
 from inputs import get_gamepad
@@ -6,17 +6,32 @@ from datetime import datetime as dt
 import datetime
 from inputs import get_gamepad
 import os
+
+import sys
+
+
+time.sleep(2)
 import pigpio
 from pwm_dma import PWM
 
+pid = str(os.getpid())
+pidfile = "/tmp/led_controller.pid"
+
+if os.path.isfile(pidfile):
+	print("%s already exists, exiting" % pidfile)
+	sys.exit()
+file = open(pidfile, "w")	
+file.write(pid)
+file.close
+	
+os.system("sudo pigpiod") #start pigpiod
 class Led_Controller:
 
 	def __init__(self):
 		#GPIO.setmode(GPIO.BCM)
 		#GPIO.setwarnings(False)
 		#GPIO.setup(24, GPIO.OUT)
-
-
+		
 		self.pi = pigpio.pi()
 	#	self.pi.write(27, 1) test
 
@@ -40,21 +55,17 @@ class Led_Controller:
 		self.reserved_btns = ["ABS_X", "ABS_Y","ABS_RX", "ABS_RY", 'SYN_REPORT', "SYN_DROPPED", "BTN_THUMBL", "BTN_SELECT", "BTN_START", "BTN_NORTH", "BTN_SOUTH", "BTN_EAST"]
 	
 
-		for devices in self.pwm.device_lst:
+		for devices in self.pwm.devices_dict.keys():
+			print('initating blink')
 			self.blink_lights(device, (1000, 0, 500))
 		while True:
 			print("starting loop")
+			
 			self.events = get_gamepad()
-			self.event_codes = []
-			for event in self.events:
-				self.event_codes.append(event.code)
-				print(event.code)
-				if event.code == "ABS_HAT0Y":
-					while event.state == 1:
-						for event_2 in get_gamepad():
-							if event_2.code == "ABS_RZ" and event_2.state > 100:
-								print("rebooting")
-								os.system('sudo reboot')
+			event_codes = []
+		
+								
+			#reset time variables
 			if self.unlock and dt.now() > self.unlock_time + datetime.timedelta(seconds = 10):
 				self.unlock = False
 			if self.start_btn and dt.now() > self.start_btn_time + datetime.timedelta(seconds = 3):
@@ -66,7 +77,12 @@ class Led_Controller:
 			for event in self.events: #iterate through any event triggered by the gamepad
 				#print("type:", event.ev_type, "event code:", event.code, "state:", event.state)
 			
-				
+				if event.code == "ABS_HAT0Y":
+					while event.state == 1:
+						for event_2 in get_gamepad():
+							if event_2.code == "ABS_RZ" and event_2.state > 100:
+								print("rebooting")
+								os.system('sudo reboot')
 				if event.code == "ABS_X" and event.state > 30000 and self.freeze_buttons == False: #state > 9000 means the joystick is over to the right far
 					if self.unlock: self.unlock_time = dt.now()
 					if self.x > 0 and ((dt.now() - self.start) > (datetime.timedelta(seconds = 1))):
@@ -82,7 +98,7 @@ class Led_Controller:
 					self.setup_blink_lights("forward")
 
 				elif event.code == "ABS_X" and event.state < -30000 and self.freeze_buttons == False: # < -9000 means the joystick is over to the left far
-					print(event.state, 'state')
+					#print(event.state, 'state')
 					if self.unlock: self.unlock_time = dt.now()
 					if self.x > 0 and ((dt.now() - self.start) > (datetime.timedelta(seconds = 1))):
 						#self.x = 0
@@ -106,7 +122,7 @@ class Led_Controller:
 					if self.unlock: self.unlock_time = dt.now()
 					if self.unlock: self.freeze_buttons = True
 					self.freeze_time = dt.now()
-					print(event.state, 'state')
+					#print(event.state, 'state')
 					if self.unlock and self.color_select == None:
 						self.adjust_brightness(event.state, "all three") #all three means all three colors
 					elif self.unlock and self.color_select == 'red':
@@ -160,7 +176,7 @@ class Led_Controller:
 					green = self.color_dict[event.code][1]
 					blue = self.color_dict[event.code][2]
 					self.pwm.changeColor(self.selection, red, green, blue)
-
+			print('ending while loop')
 
 	def unlock_customize(self, btn_select_state):
 		if btn_select_state == 1:
@@ -182,9 +198,9 @@ class Led_Controller:
 
 
 	def apply_movement_to_color(self, color, movement, scalor = 1): #color should be a tuple
-		print('applying movement of ', movement)
+		#print('applying movement of ', movement)
 		movement = movement * -1 #up is up and down is down on the joystick
-		print(scalor, 'scalor!!!!!!!!!!!!!')
+		#print(scalor, 'scalor!!!!!!!!!!!!!')
 		color = color + (movement * scalor)
 		if color > 1000: color = 1000
 		if color < 0: color = 0
@@ -196,6 +212,7 @@ class Led_Controller:
 			try:
 				current_color = self.non_zero_color
 			except AttributeError:
+				print("AttributeError")
 				current_color = (0, 0, 1)
 
 
@@ -207,6 +224,7 @@ class Led_Controller:
 			try:
 				scalor = color/color_sum
 			except ZeroDivisionError:
+				print("zeroDivision")
 				scalor = 1
 			new_color = (self.apply_movement_to_color(color, movement, scalor))
 			new_color_tup = new_color_tup + (new_color,)
@@ -244,11 +262,11 @@ class Led_Controller:
 		self.x += 1
 		self.start = dt.now()
 		self.start = dt.now()
-		print(self.dv_lst_subsc, 'subsc')
-		print(direction)
+		#print(self.dv_lst_subsc, 'subsc')
+		#print(direction)
 		if direction == "forward":
 			self.dv_lst_subsc += 1
-			print('forward_+', self.dv_lst_subsc)
+			#print('forward_+', self.dv_lst_subsc)
 
 		if direction == "backward":
 			self.dv_lst_subsc -= 1
@@ -256,9 +274,9 @@ class Led_Controller:
 		if abs(self.dv_lst_subsc) == len(self.device_lst):
 			self.dv_lst_subsc = 0
 		self.selection = self.device_lst[self.dv_lst_subsc]
-		print(self.selection,'selection')
+		#print(self.selection,'selection')
 		current_color = PWM.get_current_color(self.pwm, self.selection)
-		print("blinking")
+		#print("blinking")
 		current_color = self.pwm.get_current_color(self.selection)
 		self.blink_lights(self.selection, current_color)
 
@@ -269,5 +287,7 @@ class Led_Controller:
 			PWM.changeColor(self.pwm, device, current_color[0], current_color[1], current_color[2]) # turn lights on to make them blink
 			time.sleep(.04)
 			PWM.changeColor(self.pwm, self.selection, current_color[0], current_color[1], current_color[2]) #return lights to previous color
-
-Led_Controller()
+try:
+	Led_Controller()
+finally:
+	os.unlink(pidfile) 

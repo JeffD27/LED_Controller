@@ -12,9 +12,10 @@ class PWM:
 			"shelves": ["shR", "shG", "shB"],
 			"closet": ["clR", "clG", "clB"]}
 		self.pin_dict = {
-			"bgR": 12, "bgG": 6, "bgB": 13,
-			"shR": 4, "shG": 22, "shB": 5,
-			"clR": 23, "clG": 24, "clB":25}
+			"bgR": 22, "bgG": 18, "bgB": 23,
+			"shR": 24, "shG": 25, "shB": 21,
+			"clR": 16, "clG": 17, "clB":27}
+
 
 
 		for key in self.pin_dict:
@@ -32,6 +33,7 @@ class PWM:
 			dutycycleRGB = (self.pi.get_PWM_dutycycle(pins["red"]),self.pi.get_PWM_dutycycle(pins["green"]),self.pi.get_PWM_dutycycle(pins["blue"])) #, self.pi.get_PWM_dutycycle(pins["green"]), self.pi.get_PWM_dutycycle(pins["blue"]))
 
 		except:
+			print("DUTYCYCLERGB")
 			dutycycleRGB = (pins["red"], 200, pins["green"], 800, pins["blue"], 1000)
 		return dutycycleRGB
 	def changeColor(self, device, red, green, blue): #rgb range 0 - 1000
@@ -46,7 +48,7 @@ class PWM:
 		device_list = self.devices_dict[device] #input device as a key return list value of strings
 		#print(device_list)
 		for color_line in device_list:
-			print("color_line", color_line)
+			#print("color_line", color_line)
 			self.pi.set_PWM_dutycycle(self.pin_dict[color_line], color_dict[color_line])
 
 
