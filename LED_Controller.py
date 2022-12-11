@@ -11,7 +11,12 @@ import os
 import sys
 
 #lets see if this shows up
-
+if os.path.isfile(pidfile):
+	print("%s already exists, exiting" % pidfile)
+	sys.exit()
+file = open(pidfile, "w")
+file.write(pid)
+file.close
 time.sleep(30)
 
 import pigpio
@@ -25,13 +30,8 @@ while True:
 		break
 	except:
 		print("Excepting")
-		
-if os.path.isfile(pidfile):
-	print("%s already exists, exiting" % pidfile)
-	sys.exit()
-file = open(pidfile, "w")
-file.write(pid)
-file.close
+
+
 
 os.system("sudo pigpiod") #start pigpiod
 class Led_Controller:
