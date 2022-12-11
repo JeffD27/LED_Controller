@@ -13,12 +13,19 @@ import sys
 #lets see if this shows up
 
 time.sleep(30)
+
 import pigpio
 from pwm_dma import PWM
 
 pid = str(os.getpid())
 pidfile = "/tmp/led_controller.pid"
-
+while True:
+	try:
+		os.system("sudo pigpiod")
+		break
+	except:
+		print("Excepting")
+		
 if os.path.isfile(pidfile):
 	print("%s already exists, exiting" % pidfile)
 	sys.exit()
