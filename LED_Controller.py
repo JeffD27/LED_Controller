@@ -9,6 +9,7 @@ import os
 
 import sys
 
+#lets see if this shows up
 
 time.sleep(2)
 import pigpio
@@ -20,10 +21,10 @@ pidfile = "/tmp/led_controller.pid"
 if os.path.isfile(pidfile):
 	print("%s already exists, exiting" % pidfile)
 	sys.exit()
-file = open(pidfile, "w")	
+file = open(pidfile, "w")
 file.write(pid)
 file.close
-	
+
 os.system("sudo pigpiod") #start pigpiod
 class Led_Controller:
 
@@ -31,7 +32,7 @@ class Led_Controller:
 		#GPIO.setmode(GPIO.BCM)
 		#GPIO.setwarnings(False)
 		#GPIO.setup(24, GPIO.OUT)
-		
+
 		self.pi = pigpio.pi()
 	#	self.pi.write(27, 1) test
 
@@ -53,18 +54,18 @@ class Led_Controller:
 		self.mode_color_dict = {}
 		self.mode_button_pressed = False
 		self.reserved_btns = ["ABS_X", "ABS_Y","ABS_RX", "ABS_RY", 'SYN_REPORT', "SYN_DROPPED", "BTN_THUMBL", "BTN_SELECT", "BTN_START", "BTN_NORTH", "BTN_SOUTH", "BTN_EAST"]
-	
+
 
 		for devices in self.pwm.devices_dict.keys():
 			print('initating blink')
 			self.blink_lights(device, (1000, 0, 500))
 		while True:
 			print("starting loop")
-			
+
 			self.events = get_gamepad()
 			event_codes = []
-		
-								
+
+
 			#reset time variables
 			if self.unlock and dt.now() > self.unlock_time + datetime.timedelta(seconds = 10):
 				self.unlock = False
@@ -72,11 +73,11 @@ class Led_Controller:
 				self.start_btn = False
 			if self.freeze_buttons and dt.now() > self.freeze_time + datetime.timedelta(seconds = 1):
 				self.freeze_buttons = False
-			
-			
+
+
 			for event in self.events: #iterate through any event triggered by the gamepad
 				#print("type:", event.ev_type, "event code:", event.code, "state:", event.state)
-			
+
 				if event.code == "ABS_HAT0Y":
 					while event.state == 1:
 						for event_2 in get_gamepad():
@@ -290,4 +291,4 @@ class Led_Controller:
 try:
 	Led_Controller()
 finally:
-	os.unlink(pidfile) 
+	os.unlink(pidfile)
