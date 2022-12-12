@@ -1,4 +1,13 @@
-
+# /etc/init.d/Led_Controller.py
+### BEGIN INIT INFO
+# Provides:          sample.py
+# Required-Start:    $remote_fs $syslog
+# Required-Stop:     $remote_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Start daemon at boot time
+# Description:       Enable service provided by daemon.
+### END INIT INFO
 import time
 #time.sleep(2)
 from inputs import devices
@@ -144,10 +153,11 @@ class Led_Controller:
 					elif self.unlock and self.color_select == 'blue':
 						self.adjust_brightness(event.state, "blue")
 				elif event.code == "BTN_EAST" and event.state == 1: #BTN_EAST is "B" on x-box, event state = 1 means it pressed
+
 					if self.start_btn and self.selection is not None:
 						print("making red")
 						self.pwm.changeColor(self.selection, red = 1000, green = 0, blue = 0) #change the color to red
-						self.start_btn = False 
+
 					else: self.color_select = 'red'
 
 				#change color with start button
@@ -155,8 +165,9 @@ class Led_Controller:
 					if self.start_btn and self.selection is not None:
 						print("making green")
 						self.pwm.changeColor(self.selection, red = 0, green = 1000, blue = 0) #change the color to green
-						self.start_btn = False
+
 					else: self.color_select = 'green'
+					self.start_btn = False
 
 				elif event.code == "BTN_NORTH" and event.state == 1: #for some reason this is x on the xbox controller
 					if self.start_btn and self.selection is not None:
@@ -164,6 +175,8 @@ class Led_Controller:
 						self.pwm.changeColor(self.selection, red = 0, green = 0, blue = 1000) #change the color to blue
 						self.start_btn = False
 					else: self.color_select = 'blue'
+
+
 				elif event.code == "BTN_START" and event.state == 1:
 					self.start_btn = True
 					self.start_btn_time = dt.now()
