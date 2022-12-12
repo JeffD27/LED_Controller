@@ -75,7 +75,7 @@ class Led_Controller:
 			print('initating blink')
 			self.blink_lights(device, (0, 200, 1000)) #arbitruary color. mostly blue with a little green
 		while True:
-			print("starting loop")
+			#print("starting loop")
 
 			self.events = get_gamepad()
 			event_codes = []
@@ -209,7 +209,7 @@ class Led_Controller:
 					green = self.color_dict[event.code][1]
 					blue = self.color_dict[event.code][2]
 					self.pwm.changeColor(self.selection, red, green, blue)
-			print('ending while loop')
+			#print('ending while loop')
 
 	def unlock_customize(self, btn_select_state):
 		if btn_select_state == 1:
