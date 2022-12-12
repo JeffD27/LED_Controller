@@ -71,7 +71,7 @@ class Led_Controller:
 		self.reserved_btns = ["ABS_X", "ABS_Y","ABS_RX", "ABS_RY", 'SYN_REPORT', "SYN_DROPPED", "BTN_THUMBL", "BTN_SELECT", "BTN_START", "BTN_NORTH", "BTN_SOUTH", "BTN_EAST"]
 
 
-		for devices in self.pwm.devices_dict.keys(): #blink lights to show that it is on
+		for device in self.pwm.devices_dict.keys(): #blink lights at start to show that it is on
 			print('initating blink')
 			self.blink_lights(device, (0, 200, 1000)) #arbitruary color. mostly blue with a little green
 		while True:
