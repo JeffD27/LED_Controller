@@ -24,12 +24,12 @@ pid = str(os.getpid())
 pidfile = "/tmp/led_controller.pid"
 if os.path.isfile(pidfile):
 	print("%s already exists, exiting" % pidfile)
-	sys.exit()
+	#sys.exit()
 file = open(pidfile, "w")
 file.write(pid)
 file.close
 
-time.sleep(2)
+time.sleep(30)
 
 import pigpio
 from pwm_dma import PWM
