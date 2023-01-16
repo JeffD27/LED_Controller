@@ -9,7 +9,8 @@
 # Description:       Enable service provided by daemon.
 ### END INIT INFO
 import time
-#time.sleep(2)
+#if run from boot argv should be 0 else 1:
+
 from inputs import devices
 from inputs import get_gamepad
 from datetime import datetime as dt
@@ -18,40 +19,46 @@ from inputs import get_gamepad
 import os
 
 import sys
+import logging
 
+logging.basicConfig(filename='log1.log', encoding='utf-8', level=logging.DEBUG)
+
+'''
 #check and make sure it's not already running
 pid = str(os.getpid())
 pidfile = "/tmp/led_controller.pid"
 if os.path.isfile(pidfile):
 	print("%s already exists, exiting" % pidfile)
-	#sys.exit()
+	#sys.exit() 
 file = open(pidfile, "w")
 file.write(pid)
 file.close
-
-time.sleep(30)
+'''
+#time.sleep(30)
 
 import pigpio
 from pwm_dma import PWM
 
-
-while True:
-	try:
-		os.system("sudo pigpiod") #start the pigpio dameon.
-		break
-	except:
-		print("Excepting")
-
-
-
-#os.system("sudo pigpiod") #start pigpiod
 class Led_Controller:
+	
+	def __init__(self, argv):
+		
+		logging.info('running' + str(dt.now()))
+		if len(argv) == 1:
+			if argv.pop() == "0": #this means it is running from boot
+				print("sleeping...") 
+				logging.info('sleeping')
+				time.sleep(10) #give it time for the pi to connect to a network etc.
+			
+		
 
-	def __init__(self):
+
 
 		#set variables:
-		self.pi = pigpio.pi()
+		self.pig_count = 0
 		self.pwm = PWM()
+		
+		
 		self.device_lst = []
 		for device in self.pwm.devices_dict.keys():
 			self.device_lst.append(device)
@@ -67,13 +74,18 @@ class Led_Controller:
 		self.customize = False
 		self.color_dict = {} #for custom colors
 		self.mode_color_dict = {}
+		self.off_color_dict = {}
 		self.mode_button_pressed = False
-		self.reserved_btns = ["ABS_X", "ABS_Y","ABS_RX", "ABS_RY", 'SYN_REPORT', "SYN_DROPPED", "BTN_THUMBL", "BTN_SELECT", "BTN_START", "BTN_NORTH", "BTN_SOUTH", "BTN_EAST"]
+		self.btn_west = False
+		self.bumpers_pressed = False
+		self.off_locked = True
+		self.connect_pigpio()
+		
+		
+		self.reserved_btns = ["ABS_X", "ABS_Y","ABS_RX", "ABS_RY", 'SYN_REPORT', "SYN_DROPPED", "BTN_THUMBL", "BTN_SELECT", "BTN_START", "BTN_WEST", "BTN_NORTH", "BTN_SOUTH", "BTN_EAST"]
 
-
-		for device in self.pwm.devices_dict.keys(): #blink lights at start to show that it is on
-			print('initating blink')
-			self.blink_lights(device, (0, 200, 1000)) #arbitruary color. mostly blue with a little green
+		
+		
 		while True:
 			#print("starting loop")
 
@@ -91,7 +103,7 @@ class Led_Controller:
 
 
 			for event in self.events: #iterate through any event triggered by the gamepad
-				#print("type:", event.ev_type, "event code:", event.code, "state:", event.state)
+				print("type:", event.ev_type, "event code:", event.code, "state:", event.state)
 
 				#reboot
 				if event.code == "ABS_HAT0Y": #d-pad
@@ -159,6 +171,17 @@ class Led_Controller:
 						self.pwm.changeColor(self.selection, red = 1000, green = 0, blue = 0) #change the color to red
 
 					else: self.color_select = 'red'
+				
+				elif event.code == "BTN_WEST" and event.state == 1:
+					if not self.btn_west: #if we are not already in OFF mode
+						self.current_color = self.pwm.get_current_color(self.selection) #keep track of current color to reuse after we change it back from white
+						self.pwm.changeColor(self.selection, red = 0, green = 0, blue = 0) #turn all Circuits off
+					else: #return to previos color
+						red, green, blue = self.current_color[0], self.current_color[1], self.current_color[2]
+						print(red, green, blue, "RED GREEN BLUEEEEEE")
+						self.pwm.changeColor(self.selection, red, green, blue) #change color back from off to previous color
+					if self.btn_west == False: self.btn_west = True
+					else: self.btn_west = False
 
 				#change color with start button
 				elif event.code == "BTN_SOUTH" and event.state == 1: #this is "A" on the xbox controller
@@ -194,6 +217,26 @@ class Led_Controller:
 							self.pwm.changeColor(device, red, green, blue) #change color back from white to previous color
 					if self.mode_button_pressed == False: self.mode_button_pressed = True
 					else: self.mode_button_pressed = False
+					
+				#turn off all leds
+				elif event.code == "BTN_TL" and event.state == 1:
+					self.off_locked = False
+				elif event.code == "BTN_TR" and event.state == 1:
+					if self.off_locked:
+						break
+					if not self.bumpers_pressed: #if we are not already in OFF mode
+						for device in self.pwm.devices_dict:
+							self.off_color_dict[device] = self.pwm.get_current_color(device) #keep track of current color to reuse after we change it back from white
+							self.pwm.changeColor(device, red = 0, green = 0, blue = 0) #turn all Circuits off
+					else: #return to previos color
+						for color_tup in self.off_color_dict.values():
+							red = color_tup[0]
+							green = color_tup[1]
+							blue = color_tup[2]
+							device = {i for i in self.off_color_dict if self.off_color_dict[i]==color_tup}.pop()
+							self.pwm.changeColor(device, red, green, blue) #change color back from off to previous color
+					if self.bumpers_pressed == False: self.bumpers_pressed = True
+					else: self.bumpers_pressed = False
 				#customize
 				elif event.code == "BTN_SELECT": #allow any button except reserved_btns to save a color
 					self.unlock_customize(event.state)
@@ -263,7 +306,7 @@ class Led_Controller:
 			new_color_tup = new_color_tup + (new_color,)
 		return new_color_tup
 
-	def adjust_brightness(self, event_state, color_str):
+	def adjust_brightness(self, event_state, color_str): #color str = "red", "green", "blue" or "all three"
 		if self.selection == None:
 			return None
 		current_color = self.pwm.get_current_color(self.selection)
@@ -320,7 +363,32 @@ class Led_Controller:
 			PWM.changeColor(self.pwm, device, color[0], color[1], color[2]) # turn lights on to make them blink
 			time.sleep(.04)
 			PWM.changeColor(self.pwm, self.selection, color[0], color[1], color[2]) #return lights to previous color
-try:
-	Led_Controller()
-finally:
-	os.unlink(pidfile) #for testing to see if program is already running
+	def connect_pigpio(self):
+		print("connecting")
+		logging.info('connecting')
+		self.pig_count += 1
+		os.system("sudo pigpiod") #start the pigpio dameon.
+		time.sleep(20)
+		self.pi = pigpio.pi('soft', 8888)
+		try:
+			 
+			for device in self.pwm.devices_dict.keys(): #blink lights at start to show that it is on
+				print('initating blink')
+				self.blink_lights(device, (0, 200, 1000)) #arbitruary color. mostly blue with a little green
+		except Exception as e:
+			print(e)
+			logging.info('excepting')
+			if self.pig_count > 20:
+				raise		
+			else:
+				logging.info('cant connect sleeping')
+				time.sleep(20)
+				
+				print('ran sudo pigpiod')
+				
+				self.connect_pigpio()
+if __name__=="__main__": 	Led_Controller(sys.argv[1:])
+	#exc_type, exc_obj, exc_tb = sys.exc_info()
+	#logging.debug(e, dt.now())
+#finally:
+	#os.unlink(pidfile) #for testing to see if program is already running

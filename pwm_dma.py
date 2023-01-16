@@ -3,6 +3,8 @@
 
 
 import pigpio
+import time
+
 class PWM:
 	def __init__(self):
 		self.pi = pigpio.pi()
@@ -12,15 +14,19 @@ class PWM:
 			"shelves": ["shR", "shG", "shB"], #Circuit two [Red, green blue]
 			"closet": ["clR", "clG", "clB"]} #Circuit three [Red, green blue]
 		self.pin_dict = { #GPIO pin numbers. Make sure they correspond to the pins for your specific Circuits
-			"bgR": 22, "bgG": 18, "bgB": 23, #Circuit one GPIO pin numbers
-			"shR": 24, "shG": 25, "shB": 21, #Circuit two GPIO pin numbers
-			"clR": 16, "clG": 17, "clB":27} #Circuit three GPIO pin numbers
+			"bgR": 16, "bgG": 26, "bgB": 21, #Circuit one GPIO pin numbers
+			"shR": 22, "shG": 18, "shB": 23, #Circuit two GPIO pin numbers
+			"clR": 24, "clG": 25, "clB":27} #Circuit three GPIO pin numbers
 
 
 
 		for key in self.pin_dict:
 			pin = self.pin_dict[key]
-			self.pi.set_PWM_range(pin, 1000) #change the range of the output voltage quantifier from the default of 0-250 to 0-1000
+			try:
+				self.pi.set_PWM_range(pin, 1000) #change the range of the output voltage quantifier from the default of 0-250 to 0-1000
+			except:
+				return None
+				
 
 
 	def get_current_color(self, device): #device is the name of the Circuit. I used bglights, shelves, and closet in this code.
