@@ -7,6 +7,7 @@ import time
 
 class PWM:
 	def __init__(self):
+		print('attempting pwm')
 		self.pi = pigpio.pi()
 		print('running')
 		self.devices_dict = {
@@ -24,7 +25,8 @@ class PWM:
 			pin = self.pin_dict[key]
 			try:
 				self.pi.set_PWM_range(pin, 1000) #change the range of the output voltage quantifier from the default of 0-250 to 0-1000
-			except:
+			except Exception as e:
+				print(e)
 				return None
 				
 
@@ -33,13 +35,19 @@ class PWM:
 		pins = {"red" : self.pin_dict[self.devices_dict[device][0]],
 				"green": self.pin_dict[self.devices_dict[device][1]],
 				"blue": self.pin_dict[self.devices_dict[device][2]]}
+		print('device in pwm:', device)
 		try:
-			dutycycleRGB = (self.pi.get_PWM_dutycycle(pins["red"]),self.pi.get_PWM_dutycycle(pins["green"]),self.pi.get_PWM_dutycycle(pins["blue"])) #return a tuple of color values from 0-1000 in the form (r,g,b)
+			print("dutycycle:",	(self.pi.get_PWM_dutycycle(pins["red"]),self.pi.get_PWM_dutycycle(pins["green"]),self.pi.get_PWM_dutycycle(pins["blue"]))) #return a tuple of color values from 0-1000 in the form (r,g,b)
 
-		except:
-			print("DUTYCYCLERGB failed! Resetting color")
+			dutycycleRGB = (self.pi.get_PWM_dutycycle(pins["red"]),self.pi.get_PWM_dutycycle(pins["green"]),self.pi.get_PWM_dutycycle(pins["blue"])) #return a tuple of color values from 0-1000 in the form (r,g,b)
+		except Exception as e:
+			print("DUTYCYCLERGB failed! Resetting color", e)
+			print("red", self.pin_dict[self.devices_dict[device][0]],
+				"green", self.pin_dict[self.devices_dict[device][1]],
+				"blue", self.pin_dict[self.devices_dict[device][2]], 'in pwm exception')
 			dutycycleRGB = (pins["red"], 200, pins["green"], 800, pins["blue"], 1000) #set color to purple. Change the values to anything between 0-1000 to adjust default color.
 		return dutycycleRGB
+		
 	def changeColor(self, device, red, green, blue): #rgb range 0 - 1000
 		print(red, green, blue, 'Red, green, blue in pwm_dma')
 		color_dict = {
