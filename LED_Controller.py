@@ -19,16 +19,15 @@ from inputs import get_gamepad
 from datetime import datetime as dt
 import datetime
 import random
+import sys
 import os
 import re
 import csv
-import sys
 import logging
 import pigpio
 from pwm_dma import PWM
 import schedule 
 import time
-import subprocess
 import asyncio
 logging.basicConfig(filename='log1.log', encoding='utf-8', level=logging.DEBUG)
 
