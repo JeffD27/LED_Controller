@@ -9,17 +9,15 @@ Easily adjust the color with the joystick or set customized colors.
 ![circuit](circuit.jpg)
 
 
-The circuit that needs to built, will use a **IRFZ44N mosfet** and a 10k resistor for every color that needs to be controlled. 
+The circuit that needs to built will use a **2222a transistor** and a 10k resistor for every color that needs to be controlled. 
 
-Each 10k resistor goes from gate of each mosfet to ground. Note: it can also go between the gate of the mosfet and the source pin of the mosfet (as shown above) because the soure pin is also connected to ground). 
+Each 10k resistor goes from the drain of each transitor to the return of the lights. 
 
-The GPIO pins connect to the gates of the mosfets and also to one end of the 10k resistor.
+The GPIO pins connect to the gates of the transistors.
 
-12v ground should connect to the raspberry pi ground and to the source pin of each mosfet (as well as the 10k resistor). 
+12v ground should connect to the raspberry pi ground and to the source pin of each transistor (as well as the 10k resistor). 
 
 12v positive should connect directly to positive on the strip lighting. 
-
-Each negative color wire from the strip lights should connect to a drain on a mosfet. 
 
 This program is set up for 3 seperate light circuits that can each be controlled individually. Each circuit has red, blue, green channels each requiring a mosfet (a total of 9 mosfets are required in the 3 circuit configuration).
 Although, not fully tested, the program should work fine with less than three circuits. 
@@ -57,16 +55,14 @@ Although, not fully tested, the program should work fine with less than three ci
                             
 Note: if different GPIO pins are used you will need to edit the python dictionary called self.pin_dict in [pwm_dma.py](/pwm_dma.py) with the appropriate pin numbers.
 
-## What are mosfets, and why do I need them?:
-
-The problem all stems from the fact that you can't run LED strip lights with the 3.3v off of the GPIO pins from the Raspberry Pi. It is simply not enough voltage. However, we can use a mosfet to essentially detect the voltage output of the GPIO pin and mimic that respective output on the 12 volt circuit. So if the GPIO pin voltage is reduced, so too will the 12 volt circuit. For more info see [this tutorial](https://dordnung.de/raspberrypi-ledstrip/).
-#### What kind of mosfets do I need and where do I get them?
-
-The raspberry pi has a low output voltage of 3.3v, therefore most mosfets will not work with a raspberry pi. The one that I found that has proven sucessful is a IRFZ44N mosfet. You can get the from [Amazon here](https://smile.amazon.com/dp/B07MW1N4Q5?psc=1&ref=ppx_yo2ov_dt_b_product_details), I paid $10 for 20 of them.
 
 ## Dependencies
 
 This code uses the [Pigpio library](https://github.com/joan2937/pigpio). Please make sure the latest version is installed. No need to start the dameon as it is handled in code.
+Please install the following modules as well:
+schedule
+asyncio
+
 
 ## How to use the controller:
 
@@ -104,6 +100,9 @@ When adjusted to the color you like, click the joystick down in the center, then
 
 Hold down on the d-pad and hit the back right trigger button.
 
+#### Change lights slowly with time
+
+Hold down strat button then press select. Lights will blink green then change VERY slowly. To exit this mode, hit the back right upper paddle button. The lights will blink red to indicate the mode is off. 
 
 
 
