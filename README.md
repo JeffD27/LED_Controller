@@ -6,7 +6,7 @@ Easily adjust the color with the joystick or set customized colors.
 
 ## The Circuit: 
 
-![circuit](https://user-images.githubusercontent.com/53206149/206931516-39050a2c-bb77-44d2-bfe4-487b7e7f8cca.png)
+![circuit](circuit.jpg)
 
 
 The circuit that needs to built, will use a **2222a transistor** and a 10k resistor for every color that needs to be controlled. 
@@ -15,9 +15,13 @@ Each 10k resistor goes from gate of each transistor to ground. Note: it can also
 
 The GPIO pins connect to the gates of the transistors and also to one end of the 10k resistor.
 
+
+
 12v ground should connect to the raspberry pi ground and to the source pin of each transistor (as well as the 10k resistor). 
 
 12v positive should connect directly to positive on the strip lighting. 
+
+
 
 
 
@@ -62,6 +66,10 @@ Note: if different GPIO pins are used you will need to edit the python dictionar
 ## Dependencies
 
 This code uses the [Pigpio library](https://github.com/joan2937/pigpio). Please make sure the latest version is installed. No need to start the dameon as it is handled in code.
+Please install the following modules as well:
+schedule
+asyncio
+
 
 ## How to use the controller:
 
@@ -99,6 +107,9 @@ When adjusted to the color you like, click the joystick down in the center, then
 
 Hold down on the d-pad and hit the back right trigger button.
 
+#### Change lights slowly with time
+
+Hold down strat button then press select. Lights will blink green then change VERY slowly. To exit this mode, hit the back right upper paddle button. The lights will blink red to indicate the mode is off. 
 
 
 
