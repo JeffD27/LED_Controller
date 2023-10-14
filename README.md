@@ -9,15 +9,21 @@ Easily adjust the color with the joystick or set customized colors.
 ![circuit](circuit.jpg)
 
 
-The circuit that needs to built will use a **2222a transistor** and a 10k resistor for every color that needs to be controlled. 
+The circuit that needs to built, will use a **2222a transistor** and a 10k resistor for every color that needs to be controlled. 
 
-Each 10k resistor goes from the drain of each transitor to the return of the lights. 
+Each 10k resistor goes from gate of each transistor to ground. Note: it can also go between the gate of the mosfet and the source pin of the mosfet (as shown above) because the soure pin is also connected to ground). 
 
-The GPIO pins connect to the gates of the transistors.
+The GPIO pins connect to the gates of the transistors and also to one end of the 10k resistor.
+
+
 
 12v ground should connect to the raspberry pi ground and to the source pin of each transistor (as well as the 10k resistor). 
 
 12v positive should connect directly to positive on the strip lighting. 
+
+
+
+
 
 This program is set up for 3 seperate light circuits that can each be controlled individually. Each circuit has red, blue, green channels each requiring a mosfet (a total of 9 mosfets are required in the 3 circuit configuration).
 Although, not fully tested, the program should work fine with less than three circuits. 
@@ -54,6 +60,7 @@ Although, not fully tested, the program should work fine with less than three ci
                             
                             
 Note: if different GPIO pins are used you will need to edit the python dictionary called self.pin_dict in [pwm_dma.py](/pwm_dma.py) with the appropriate pin numbers.
+
 
 
 ## Dependencies
