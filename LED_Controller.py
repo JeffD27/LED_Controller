@@ -29,25 +29,9 @@ from pwm_dma import PWM
 import schedule 
 import time
 import asyncio
+import server_for_goog
 logging.basicConfig(filename='log1.log', encoding='utf-8', level=logging.DEBUG)
 
-
-#check and make sure it's not already running
-os.system(' sudo killall pigpiod')
-with open('chkrunning.txt', 'w', encoding='utf-8') as f:
-	print('opening file and writing')
-	f.write(str(os.getpid()))
-'''
-pid = str(os.getpid())
-pidfile = "/tmp/led_controller.pid"
-if os.path.isfile(pidfile):
-	print("%s already exists, exiting" % pidfile)
-	#sys.exit() 
-file = open(pidfile, "w")
-file.write(pid)
-file.close
-'''
-#time.sleep(30)
 
 
 
@@ -61,19 +45,21 @@ class Led_Controller:
 		#		print("sleeping...") 
 		#		logging.info('sleeping')
 		#		time.sleep(10) #give it time for the pi to connect to a network etc.
-		asyncio.run(self.setVariables())
+		self.pig_count = 0
+		self.connect_pigpio()
+		self.pwm = PWM()
+		self.setVariables()
+		
 		asyncio.run(self.main())
 		
 		
 
-
-	async def setVariables(self):
-		self.pig_count = 0
-		await(self.connect_pigpio())
-		self.pwm = PWM()
+	def setVariables(self):
+		
+		
 		
 		self.device_lst = []
-		for device in self.pwm.devices_dict.keys():
+		for device in self.pwm.devices_dict.keys(): 
 			self.device_lst.append(device)
 		self.selection = self.device_lst[0]
 		self.x = 0
@@ -93,6 +79,7 @@ class Led_Controller:
 		self.bumpers_pressed = False
 		self.off_locked = True
 		
+		
 		self.add_dict = {'red': 1, 'green' : 1, 'blue' : 1} # 1 means add     0 means subtract
 		
 
@@ -105,61 +92,26 @@ class Led_Controller:
 		
 
 	async def main(self):			#print("starting loop")
+	
+			
 		self.initiate_blink()
 		self.return_to_previous()
-		while True:
-			print('starting loop')
-			await self.run_schedule()
-			
-			#print('scheduled')
-			self.save()
-			self.cleanup_previous_state()
-			
-			await self.get_controller_event()
-			print('found events')
-			#
-			if self.unlock and dt.now() > self.unlock_time + datetime.timedelta(seconds = 10):
-				self.unlock = False
-			if self.start_btn and dt.now() > self.start_btn_time + datetime.timedelta(seconds = 1):
-				self.start_btn = False
-			if self.freeze_buttons and dt.now() > self.freeze_time + datetime.timedelta(seconds = .5):
-				self.freeze_buttons = False
 		
-			#loop.stop()
+		print('starting loop')
+		
+		
+		
+		#await self.run_schedule()
+		
+		#print('scheduled')
+		while True: 
+			asyncio.gather(self.get_controller_event(), self.save())
+			await asyncio.sleep(1)
 
-	def save(self):
-		for device in self.pwm.devices_dict.keys():
-			color = self.pwm.get_current_color(device)
-			#print(color)
-			if len(color) > 3:
-				#print('shrinking')
-				color = (color[1], color[3], color[5]) #fixes a glitch from pwm
-			#print(color, 'cooollllerr!')
-			self.write_to_previous_state(device, color)
-	async def run_schedule(self):
-		#await asyncio.sleep(1)
-		schedule.run_pending()
-	
-
-	async def get_controller_event(self):
-		print("seeking controller event")
-		#await asyncio.sleep(1)
-		self.events = []
-		while True:
-			try:
-				self.events.append(inputs.get_gamepad()[0])
-				break
-			except inputs.UnpluggedError:
-				print("gamepad is not connected")
-				asyncio.sleep(5)
-				continue
-			except Exception as e:
-				print(e)
-				break
-		#print('got gamepad')
-		for event in self.events: #iterate through any event triggered by the gamepad
+	async def iterate_gamepad(self, events):
+		for event in events: #iterate through any event triggered by the gamepad
 			#print( "event code:", event.code, "state:", event.state)
-			
+		
 			#reboot
 			if event.code == "ABS_HAT0Y": #d-pad
 				while event.state == 1: #while the d-pad is pressed
@@ -314,8 +266,9 @@ class Led_Controller:
 						self.blink_lights(device, (0,1000,0))
 						self.return_to_previous()
 					self.color_changing = True
-					self.sched_event = schedule.every(.1).minutes.do(self.change_color_w_time) #start time change mode
+					self.sched_event = schedule.every(.5).seconds.do(self.change_color_w_time) #start time change mode
 					self.sched_event.run()
+					#asyncio.gather(self.run_schedule(), self.get_controller_event())
 					
 				else:		
 					print('unlocked')
@@ -332,8 +285,63 @@ class Led_Controller:
 				green = self.color_dict[event.code][1]
 				blue = self.color_dict[event.code][2]
 				self.pwm.changeColor(self.selection, red, green, blue)
+			
 		#print('ending while loop')
+		
+		
 
+
+
+		print('found events')
+		#
+		if self.unlock and dt.now() > self.unlock_time + datetime.timedelta(seconds = 10):
+			self.unlock = False
+		if self.start_btn and dt.now() > self.start_btn_time + datetime.timedelta(seconds = 1):
+			self.start_btn = False
+		if self.freeze_buttons and dt.now() > self.freeze_time + datetime.timedelta(seconds = .5):
+			self.freeze_buttons = False
+
+			#loop.stop()
+
+	async def save(self):
+		print("SAVE IS RUNNING!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!########################################")
+		for device in self.pwm.devices_dict.keys():
+			color = self.pwm.get_current_color(device)
+			#print(color)
+			if len(color) > 3:
+				#print('shrinking')
+				color = (color[1], color[3], color[5]) #fixes a glitch from pwm
+			#print(color, 'cooollllerr!')
+			self.write_to_previous_state(device, color)
+			self.cleanup_previous_state()
+	async def run_schedule(self):
+		#await asyncio.sleep(1)
+		print('color changing running sched!!!!')
+		await schedule.run_pending()
+			
+				
+		
+
+	async def get_controller_event(self):
+		while True:
+			print("seeking controller event")
+			#await asyncio.sleep(1)
+			events = []
+			while True:
+				
+				try:
+					events.append(inputs.get_gamepad()[0])
+					break
+				except inputs.UnpluggedError:
+					print("gamepad is not connected")
+					asyncio.sleep(5)
+					continue
+				except Exception as e:
+					print(e)
+					break
+			#print('got gamepad')4
+			await self.iterate_gamepad(events)
+			await asyncio.sleep(.01)
 	def unlock_customize(self, btn_select_state):
 		if btn_select_state == 1:
 			self.customize = True
@@ -364,12 +372,6 @@ class Led_Controller:
 						
 				colors.append([device, red, green, blue])
 		return(colors)	
-					
-														
-						
-					
-					
-		
 				
 	def write_to_previous_state(self, device, rgb_tup):
 		with open('previous_state.csv', mode = 'a+') as csv_file:
@@ -377,7 +379,6 @@ class Led_Controller:
 		
 			writer.writerow({device, rgb_tup})
 			#print('written', rgb_tup)
-		
 
 	def cleanup_previous_state(self):
 		with open('previous_state.csv', mode = 'r') as f:
@@ -389,7 +390,7 @@ class Led_Controller:
 					
 	def calculate_color_change(self, color, add, rand): #color is an int (not tupple) add is bolean (subtract = False)
 		if add:
-			new_color = color + rand
+			new_color = color + rand 
 			print("new color equals %s" % new_color)
 		else:
 			new_color = color - rand
@@ -406,7 +407,7 @@ class Led_Controller:
 			dict_convert_i = {0 : 'red', 1 : 'green', 2 : 'blue'}
 			new_color_tup= ()
 			for color in current_color:
-				rand = random.randrange(1,10)
+				rand = random.randrange(1,100)
 				#print(self.add_dict[dict_convert_i[i]], "$$$$$$$$$444444444444444444444444444444444444444444444444444")
 				new_color = self.calculate_color_change(current_color[i], self.add_dict[dict_convert_i[i]], rand)
 				print(new_color, "new color")
@@ -530,7 +531,7 @@ class Led_Controller:
 			PWM.changeColor(self.pwm, device, color[0], color[1], color[2]) # turn lights on to make them blink
 			time.sleep(.04)
 			PWM.changeColor(self.pwm, device, color[0], color[1], color[2]) #return lights to previous color
-	async def connect_pigpio(self):
+	def connect_pigpio(self):
 		print("connecting")
 		#self.pi = pigpio.pi('soft', 8888)
 		#logging.info('connecting')
