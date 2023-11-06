@@ -29,16 +29,18 @@ from pwm_dma import PWM
 import schedule 
 import time
 import asyncio
+import concurrent.futures as cf
 import server_for_goog
 logging.basicConfig(filename='log1.log', encoding='utf-8', level=logging.DEBUG)
+import math
 
 
 
-
+#save(, conntroller_event,change_color_w_time
 class Led_Controller:
 	
 	def __init__(self, argv):
-		#return 0
+		# return 0
 		logging.info('running' + str(dt.now()))
 		#if len(argv) == 1:
 	#		if argv.pop() == "0": #this means it is running from boot
@@ -49,15 +51,14 @@ class Led_Controller:
 		self.connect_pigpio()
 		self.pwm = PWM()
 		self.setVariables()
-		
-		asyncio.run(self.main())
-		
-		
+		self.main()
+		#asyncio.run(self.main())
+	
 
 	def setVariables(self):
 		
-		
-		
+		print('setting variables*******')
+		self.savetime = dt.now()
 		self.device_lst = []
 		for device in self.pwm.devices_dict.keys(): 
 			self.device_lst.append(device)
@@ -80,8 +81,6 @@ class Led_Controller:
 		self.off_locked = True
 		
 		
-		self.add_dict = {'red': 1, 'green' : 1, 'blue' : 1} # 1 means add     0 means subtract
-		
 
 		
 		self.reserved_btns = ["ABS_X", "ABS_Y","ABS_RX", "ABS_RY", 'SYN_REPORT', "SYN_DROPPED", "BTN_THUMBL", "BTN_SELECT", "BTN_START", "BTN_WEST", "BTN_NORTH", "BTN_SOUTH", "BTN_EAST"]
@@ -91,24 +90,30 @@ class Led_Controller:
 		
 		
 
-	async def main(self):			#print("starting loop")
-	
-			
+	def main(self):			#print("starting loop")
 		self.initiate_blink()
 		self.return_to_previous()
-		
-		print('starting loop')
-		
-		
-		
-		#await self.run_schedule()
-		
-		#print('scheduled')
+		with cf.ThreadPoolExecutor(max_workers=3) as executor:
+			executor.submit(self.get_controller_event)
+			executor.submit(self.save)
+			executor.submit(self.change_color_w_time)
+			
+		#self.queue_controller = asyncio.Queue()
+		#self.queue_color_change = asyncio.Queue()
 		while True: 
-			asyncio.gather(self.get_controller_event(), self.save())
-			await asyncio.sleep(1)
+			
+			print('main')
+			#self.controller_loop = asyncio.create_task(self.get_controller_event()) 
+			#self.save_loop = asyncio.create_task(self.save())
+			#self.change_color_loop = asyncio.create_task(self.change_color_w_time())
+			#asyncio.gather(self.change_color_w_time(), self.save())
+			#asyncio.gather(self.change_color_loop, self.save_loop)
+			#await asyncio.sleep(1)
+			#asyncio.gather(self.get_controller_event(), self.save(), self.change_color_w_time())
+			
+			#await asyncio.sleep(.01)
 
-	async def iterate_gamepad(self, events):
+	def iterate_gamepad(self, events):
 		for event in events: #iterate through any event triggered by the gamepad
 			#print( "event code:", event.code, "state:", event.state)
 		
@@ -182,14 +187,15 @@ class Led_Controller:
 			elif event.code == "BTN_TR" and event.state == 1: #buton west is the back right top paddle button
 				print('west!!!!!!!!!!!!!!!!!')
 				if self.color_changing: #if color changing is on, shut it off (shut off color changing)
+					self.color_changing = False
 					print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
 					for device in self.device_lst:
 						self.blink_lights(device, (1000, 0, 0))
 						self.return_to_previous()
-						schedule.cancel_job(self.sched_event)
+						#schedule.cancel_job(self.sched_event)
 						print('CANCELED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-					self.color_changing = False
-					break
+					
+					
 				elif not self.btn_west: #if we are not already in OFF mode
 					self.current_color = self.pwm.get_current_color(self.selection) #keep track of current color to reuse after we change it back from white
 					self.pwm.changeColor(self.selection, red = 0, green = 0, blue = 0) #turn all Circuits off
@@ -266,8 +272,9 @@ class Led_Controller:
 						self.blink_lights(device, (0,1000,0))
 						self.return_to_previous()
 					self.color_changing = True
-					self.sched_event = schedule.every(.5).seconds.do(self.change_color_w_time) #start time change mode
-					self.sched_event.run()
+					
+				
+				
 					#asyncio.gather(self.run_schedule(), self.get_controller_event())
 					
 				else:		
@@ -286,14 +293,7 @@ class Led_Controller:
 				blue = self.color_dict[event.code][2]
 				self.pwm.changeColor(self.selection, red, green, blue)
 			
-		#print('ending while loop')
-		
-		
 
-
-
-		print('found events')
-		#
 		if self.unlock and dt.now() > self.unlock_time + datetime.timedelta(seconds = 10):
 			self.unlock = False
 		if self.start_btn and dt.now() > self.start_btn_time + datetime.timedelta(seconds = 1):
@@ -303,45 +303,45 @@ class Led_Controller:
 
 			#loop.stop()
 
-	async def save(self):
-		print("SAVE IS RUNNING!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!########################################")
-		for device in self.pwm.devices_dict.keys():
-			color = self.pwm.get_current_color(device)
-			#print(color)
-			if len(color) > 3:
-				#print('shrinking')
-				color = (color[1], color[3], color[5]) #fixes a glitch from pwm
-			#print(color, 'cooollllerr!')
-			self.write_to_previous_state(device, color)
-			self.cleanup_previous_state()
-	async def run_schedule(self):
-		#await asyncio.sleep(1)
-		print('color changing running sched!!!!')
-		await schedule.run_pending()
-			
+	def save(self):
+		while True:
+			#print(datetime.now - self.save_time, 'here$$$$^^^&&&%%%&&')
+			#if datetime.now - self.save_time < datetime.timedelta(0, 5, 0):
+				#return None
+			print("SAVE IS RUNNING!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!########################################")
+			for device in self.pwm.devices_dict.keys():
+				color = self.pwm.get_current_color(device)
+				#print(color)
+				if len(color) > 3:
+					#print('shrinking')
+					color = (color[1], color[3], color[5]) #fixes a glitch from pwm
+				#print(color, 'cooollllerr!')
+				self.write_to_previous_state(device, color)
+				self.cleanup_previous_state()
+			time.sleep(10)
 				
 		
 
-	async def get_controller_event(self):
+	def get_controller_event(self):
 		while True:
-			print("seeking controller event")
-			#await asyncio.sleep(1)
 			events = []
 			while True:
-				
 				try:
-					events.append(inputs.get_gamepad()[0])
+					print('trying')
+					events = inputs.get_gamepad() #this should work...it still hangs and doesn't except out after 3 sec
+					print('tried')
 					break
 				except inputs.UnpluggedError:
 					print("gamepad is not connected")
-					asyncio.sleep(5)
+					time.sleep(5)
 					continue
 				except Exception as e:
 					print(e)
 					break
 			#print('got gamepad')4
-			await self.iterate_gamepad(events)
-			await asyncio.sleep(.01)
+			self.iterate_gamepad(events)
+			#time.sleep(.1)
+			
 	def unlock_customize(self, btn_select_state):
 		if btn_select_state == 1:
 			self.customize = True
@@ -371,7 +371,7 @@ class Led_Controller:
 						device = re.search('[a-z]{3,}', txt).group()
 						
 				colors.append([device, red, green, blue])
-		return(colors)	
+		return colors	
 				
 	def write_to_previous_state(self, device, rgb_tup):
 		with open('previous_state.csv', mode = 'a+') as csv_file:
@@ -388,43 +388,89 @@ class Led_Controller:
 				if number > (len(lines) - 4):
 					f.write(line)
 					
-	def calculate_color_change(self, color, add, rand): #color is an int (not tupple) add is bolean (subtract = False)
-		if add:
-			new_color = color + rand 
-			print("new color equals %s" % new_color)
-		else:
-			new_color = color - rand
-		return new_color
+	def check_color_sum(self, color_tup):
+		print('checking sum!')
+		color_sum = 0
+		for color in color_tup:
+			color_sum += color
+		print(color_sum)
+		if color_sum < 1000:
+			print('brightening @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
+			
+			diff = round((1000 - color_sum)/3)
+			print(diff, 'diff')
+			new_color_lst = []
+			for color in color_tup:
+				new_color = color + diff
+				print('new color', new_color, 'old color', color)
+				new_color_lst.append(new_color)
+			color_tup = tuple(new_color_lst)
+		print('returning')
+		return color_tup
 	def change_color_w_time(self):
-		print('color changing')
-		for device in self.device_lst:
-			print('color changing')
-			print(device, 'device')
-
-			current_color = self.pwm.get_current_color(device)
-			print(current_color, 'current_color!')
-			i = 0
-			dict_convert_i = {0 : 'red', 1 : 'green', 2 : 'blue'}
-			new_color_tup= ()
-			for color in current_color:
-				rand = random.randrange(1,100)
-				#print(self.add_dict[dict_convert_i[i]], "$$$$$$$$$444444444444444444444444444444444444444444444444444")
-				new_color = self.calculate_color_change(current_color[i], self.add_dict[dict_convert_i[i]], rand)
-				print(new_color, "new color")
-				if new_color > 1000:
-					self.add_dict[dict_convert_i[i]] = 0
-					#print( self.add_dict[dict_convert_i[i]], 'ppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp')
-					new_color = self.calculate_color_change(current_color[i], self.add_dict[dict_convert_i[i]], rand)
+		while True:
+			#loop = asyncio.get_event_loop()
+			#loop.stop()
+			print(self.color_changing, '%%%%')
+			while self.color_changing == True:
+				
+				print( 'color changing$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$')
+				for device in self.device_lst:
+					print(self.device_lst, 'device lst')
+					print('color changing')
+					print(device, 'device')
 					
-				elif new_color < 0 :
-					self.add_dict[dict_convert_i[i]] = 1
-					new_color = new_color*-1 #all this complex bs does is decide whether or add or sub color
-				new_color_tup += (new_color, )
-				print('new color tup', new_color_tup)
-				i += 1
-			
-			self.pwm.changeColor(device, new_color_tup[0], new_color_tup[1], new_color_tup[2]) #change color
-			
+					current_color = self.pwm.get_current_color(device)
+					print(current_color, 'current_color!')
+					i = 0
+					dict_convert_i = {0 : 'red', 1 : 'green', 2 : 'blue'}
+					new_color_tup= ()
+					
+					for color in current_color:
+						rand = random.randrange(-5,20)
+						#print(self.add_dict[dict_convert_i[i]], "$$$$$$$$$444444444444444444444444444444444444444444444444444")
+						#new_color = self.calculate_color_change(current_color[i], self.add_dict[dict_convert_i[i]], rand)
+						new_color = color + rand 
+						print("new color equals %s" % new_color)
+						print(new_color, "new color")
+						if new_color > 1000:
+							
+							#print( self.add_dict[dict_convert_i[i]], 'ppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp')
+							new_color = new_color - 1000
+							print("new color after 1000", new_color)
+							
+						elif new_color < 0 :
+							
+							new_color = new_color*-1 
+							print('new_color after -1', new_color)
+						new_color_tup += (new_color, )
+					new_color_tup = self.check_color_sum(new_color_tup)
+						
+					
+						
+				
+					print('checking for white')	
+					if math.isclose(new_color_tup[0], new_color_tup[1], rel_tol=200) and math.isclose(new_color_tup[1], new_color_tup[2], rel_tol=200): #if white ....i hope.
+						print('we made it here.')
+						print(new_color_tup, 'new color tup')
+						rand_rgb = random.randrange(3)
+						lst = []
+						for i, color in enumerate(new_color_tup):
+							print(color, 'color')
+							if i == rand_rgb:
+								color = 0
+							lst.append(color)
+						new_color_tup = tuple(lst)
+						print(new_color_tup, 'after de-whitening')
+						new_color_tup = self.check_color_sum(new_color_tup)
+					else:
+						print('not white')
+					
+					self.pwm.changeColor(device, new_color_tup[0], new_color_tup[1], new_color_tup[2]) #change color
+					time.sleep(300) # 5 min
+					#await self.controller_loop
+				
+			time.sleep(2)
 			
 			
 			
@@ -538,7 +584,7 @@ class Led_Controller:
 		self.pig_count += 1
 		print(os.system('sudo pigs t'), 'here')
 		os.system('sudo killall pigpiod')
-		time.sleep(7)
+		time.sleep(2)
 		print(os.system('sudo pigs t'), 'here2: pigpiod killed')
 	#	if not os.system('sudo pigs t') > 1:
 		print('starting pigpiod', os.system('sudo pigs t'))
