@@ -63,7 +63,7 @@ class Led_Controller:
 		for device in self.pwm.devices_dict.keys(): 
 			self.device_lst.append(device)
 		self.selection = self.device_lst[0]
-		self.x = 0
+		
 		self.start = dt.now()
 		self.dv_lst_subsc = -1
 		self.unlock = False
@@ -128,30 +128,27 @@ class Led_Controller:
 			#scroll with left joystick to the right
 			if event.code == "ABS_X" and event.state > 30000 and self.freeze_buttons == False: #state > 9000 means the joystick is over to the right far
 				if self.unlock: self.unlock_time = dt.now()
-				if self.x > 0 and ((dt.now() - self.start) > (datetime.timedelta(seconds = 1))):
-					#self.x = 0
+				print(dt.now() - self.start,'~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+				if (dt.now() - self.start) < (datetime.timedelta(seconds = .8)): # if the data comes within .8 seconds, ignore it
+					print("breaking")
+					break
+				if (dt.now() - self.start) > (datetime.timedelta(seconds = 1.7)):
+					print(self.start,'start')
 					print('resetting')
 					self.start = dt.now()
 					self.setup_blink_lights("forward")
 					break
-
-				if self.x > 0 and ((dt.now() - self.start) < (datetime.timedelta(seconds = .8))): # if the data comes within .8 seconds, ignore it
-					#print("breaking")
-					break
-				self.setup_blink_lights("forward") #blink to let user know the selection
-
 			#scroll with left joystick to the left
 			elif event.code == "ABS_X" and event.state < -30000 and self.freeze_buttons == False: # < -9000 means the joystick is over to the left far
 				#print(event.state, 'state')
 				if self.unlock: self.unlock_time = dt.now()
-				if self.x > 0 and ((dt.now() - self.start) > (datetime.timedelta(seconds = 1))):
-					#self.x = 0
+				if (dt.now() - self.start) > (datetime.timedelta(seconds = 1.7)):
 					self.start = dt.now()
 					self.color_select = None
 					self.setup_blink_lights("backward")
 					break
 
-				if self.x > 0 and ((dt.now() - self.start) < (datetime.timedelta(seconds = .8))): # if the data comes within .8 seconds, ignore it
+				if (dt.now() - self.start) < (datetime.timedelta(seconds = .8)): # if the data comes within .8 seconds, ignore it
 					#print("breaking")
 					break
 
@@ -327,9 +324,9 @@ class Led_Controller:
 			events = []
 			while True:
 				try:
-					print('trying')
+					#print('trying')
 					events = inputs.get_gamepad() #this should work...it still hangs and doesn't except out after 3 sec
-					print('tried')
+					#print('tried')
 					break
 				except inputs.UnpluggedError:
 					print("gamepad is not connected")
@@ -340,7 +337,7 @@ class Led_Controller:
 					break
 			#print('got gamepad')4
 			self.iterate_gamepad(events)
-			#time.sleep(.1)
+			#ime.sleep(.08)
 			
 	def unlock_customize(self, btn_select_state):
 		if btn_select_state == 1:
@@ -388,89 +385,193 @@ class Led_Controller:
 				if number > (len(lines) - 4):
 					f.write(line)
 					
-	def check_color_sum(self, color_tup):
-		print('checking sum!')
+	def auto_brighten(self, color_tup):
+		print('brightening')
 		color_sum = 0
-		for color in color_tup:
-			color_sum += color
-		print(color_sum)
-		if color_sum < 1000:
-			print('brightening @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
-			
-			diff = round((1000 - color_sum)/3)
-			print(diff, 'diff')
-			new_color_lst = []
+		print(color_tup, 'color_tup')
+		brightest_color = max(color_tup)
+		print(brightest_color, 'brightest color')
+		if brightest_color < 1000: 
+			diff = 1000 - brightest_color
+			new_color_tup = ()
 			for color in color_tup:
 				new_color = color + diff
 				print('new color', new_color, 'old color', color)
-				new_color_lst.append(new_color)
-			color_tup = tuple(new_color_lst)
+				new_color_tup += (new_color, )
+				print(new_color_tup, 'new_color_tup')
+			color_tup = new_color_tup
 		print('returning')
 		return color_tup
+	
+	def check_for_white(self, color_tup):
+		print('checking for white')
+		print(color_tup)
+		
+		if math.isclose(color_tup[0], color_tup[1], abs_tol=200) and math.isclose(color_tup[1], color_tup[2], abs_tol=200): #if white ....i hope.
+			print('white')
+			return True
+		else:
+			print('not white')
+			return False
+
+	def check_similar_color(self, dev_color_lst): # dev_color_lst = list of tuples with color and device for each device
+		print('checking similiarities!$%^&')
+		for i, device_color in enumerate(dev_color_lst):
+			current_color = dev_color_lst[i][0] #yeah this could have been written bettter but it works
+			device = dev_color_lst[i][1]
+			print(i,  device, 'i, device')
+			
+			print('current_color in similiarities', current_color, device)
+			
+			if i > 0:
+				prev_color_tup = dev_color_lst[i-1][0]
+				print(prev_color_tup, 'prev color tup')
+				print(current_color, 'current color')
+				close_color_count = 0
+				for i, color in enumerate(prev_color_tup):
+					print(color)
+					print(current_color[i])
+					if math.isclose(color, current_color[i], abs_tol = 200):
+						print(color, current_color[i], 'color, current color[i]')
+						close_color_count += 1
+						print(close_color_count, 'close color count')
+					else:
+						print('not close')
+				if close_color_count == 3:
+					print('they\'re close')
+					new_color_tup = ()
+					for color in current_color:
+						new_color_tup += (self.auto_change_color(color, random_max = 500, random_min = 300), ) 
+						
+						
+						print(new_color_tup, 'new_color_tup')
+					if math.isclose(new_color_tup[0], new_color_tup[1], abs_tol=300) and math.isclose(new_color_tup[1], new_color_tup[2], abs_tol=300) :
+							print('close...fixing')
+							newer_color = ()
+							for i, color in enumerate(new_color_tup):
+								print(i, color,'color')
+								if i == random.randrange(0, 3, 1):
+									print('changing color')
+									if color > 499:
+										print('subtracting')
+										color = color - 400
+										newer_color += (color, )
+										print('subtracted')
+										print(newer_color)
+									else:
+										print('adding')
+										color = color + 400
+										newer_color += (color, )
+										print('added')
+										print(newer_color)
+								else:
+									print('not changing color')
+									newer_color += (color, )
+									print(newer_color)
+							new_color_tup = newer_color			
+							print('new_color final at end of auto_change_color', new_color_tup)
+					print(dev_color_lst, ', her%$#')
+					dev_color_lst[i] = (new_color_tup, device)
+				print(dev_color_lst, 'color lst')
+		return dev_color_lst
+					
+
+	def auto_change_color(self, current_color, max_color=1000, min_color = 0, random_max = 2, random_min = -2, random_choices = []): #current color is not tuple but single value for either red green or blue, ##random_max is int...higher means more variety
+		print('auto changing color')	
+		print(current_color, 'current color')
+		if len(random_choices) < 1:
+			for i in range(random_min, random_max):
+				random_choices.append(i)
+
+		
+		rand = random.choice(random_choices)
+		new_color = current_color + rand 
+		print("new color equals %s" % new_color)
+		print(new_color, "new color")
+		if new_color > max_color:
+			new_color = min_color
+			print("new color after 1000", new_color)
+		elif new_color < min_color:
+			new_color = min_color
+		'''
+		if math.isclose(new_color[0], new_color[1], abs_tol=300) and math.isclose(new_color[1], new_color[2], abs_tol=300) :
+			print('close...fixing')
+			newer_color = ()
+			for i, color in enumerate(new_color):
+				if i == rand(3):
+					if color > 499:
+						color = color - 400
+						newer_color += (color, )
+					else:
+						color = color + 400
+						new_color += (color, )
+				else:
+					newer_color += (color, )
+			new_color = newer_color			
+		'''
+		print('new_color final at end of auto_change_color', new_color)
+		
+		return new_color #integer not tuple
 	def change_color_w_time(self):
 		while True:
 			#loop = asyncio.get_event_loop()
 			#loop.stop()
-			print(self.color_changing, '%%%%')
+			#print(self.color_changing, '%%%%')
 			while self.color_changing == True:
 				
 				print( 'color changing$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$')
+				device_color_list = []
 				for device in self.device_lst:
 					print(self.device_lst, 'device lst')
 					print('color changing')
 					print(device, 'device')
-					
 					current_color = self.pwm.get_current_color(device)
 					print(current_color, 'current_color!')
-					i = 0
-					dict_convert_i = {0 : 'red', 1 : 'green', 2 : 'blue'}
 					new_color_tup= ()
-					
-					for color in current_color:
-						rand = random.randrange(-5,20)
-						#print(self.add_dict[dict_convert_i[i]], "$$$$$$$$$444444444444444444444444444444444444444444444444444")
-						#new_color = self.calculate_color_change(current_color[i], self.add_dict[dict_convert_i[i]], rand)
-						new_color = color + rand 
-						print("new color equals %s" % new_color)
-						print(new_color, "new color")
-						if new_color > 1000:
-							
-							#print( self.add_dict[dict_convert_i[i]], 'ppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp')
-							new_color = new_color - 1000
-							print("new color after 1000", new_color)
-							
-						elif new_color < 0 :
-							
-							new_color = new_color*-1 
-							print('new_color after -1', new_color)
+					for i, color in enumerate(current_color):
+						print(i,'i')
+						if i == 1:
+							if math.isclose(new_color_tup[0], color, abs_tol=400): #is this color close to the last color
+								avg = (new_color_tup[0] + color) / 2 
+								print(avg, 'avg')
+								if avg > 499: 
+									new_color = self.auto_change_color(current_color=color, max_color=1000, random_choices= [i for i in range(-450, -300)])
+								else:
+									new_color = self.auto_change_color(current_color=color, min_color=1000, random_choices= [i for i in range(300, 450)])						
+						if i == 2: 
+							if math.isclose(new_color_tup[0], new_color_tup[1], abs_tol=600): #is this color close to the last color
+								avg = (new_color_tup[0] + new_color_tup[1]) / 2 
+								print(avg, 'avg')
+								if avg > 499: 
+									new_color = self.auto_change_color(current_color=color, max_color=avg-400, random_choices= [i for i in range(-650, -500)])
+								else:
+									new_color = self.auto_change_color(current_color=color, min_color=avg+400, random_choices= [i for i in range(650, 500)])
+									new_color = self.auto_change_color(current_color=color, min_color=avg+400, random_choices= [i for i in range(650, 500)])
+						else:
+							new_color = self.auto_change_color(current_color=color, max_color=1000, random_max = 5)
+							new_color = self.auto_change_color(current_color=color, max_color=1000, random_max = 5)
+						print(new_color, 'new_color8888888888888')
+						print(device)
 						new_color_tup += (new_color, )
-					new_color_tup = self.check_color_sum(new_color_tup)
+						print('done with color change for', device, 'color is', new_color_tup)
+					new_color_tup = self.auto_brighten(new_color_tup)
 						
 					
-						
-				
-					print('checking for white')	
-					if math.isclose(new_color_tup[0], new_color_tup[1], rel_tol=200) and math.isclose(new_color_tup[1], new_color_tup[2], rel_tol=200): #if white ....i hope.
-						print('we made it here.')
-						print(new_color_tup, 'new color tup')
-						rand_rgb = random.randrange(3)
-						lst = []
-						for i, color in enumerate(new_color_tup):
-							print(color, 'color')
-							if i == rand_rgb:
-								color = 0
-							lst.append(color)
-						new_color_tup = tuple(lst)
-						print(new_color_tup, 'after de-whitening')
-						new_color_tup = self.check_color_sum(new_color_tup)
-					else:
-						print('not white')
-					
-					self.pwm.changeColor(device, new_color_tup[0], new_color_tup[1], new_color_tup[2]) #change color
-					time.sleep(300) # 5 min
+					device_color_list.append((new_color_tup, device))
+					print(device_color_list, 'device color list1')
+				device_color_list = self.check_similar_color(device_color_list)
+				print(device_color_list, 'device color list')
+				for color_device in device_color_list:
+					device = color_device[1]	
+					color = color_device[0]
+					color = self.auto_brighten(color)
+					print(device, color, 'device, color**')
+					self.pwm.changeColor(device, color[0], color[1], color[2]) #change color
+					print('color changed')
+				time.sleep(60) # 5 min
 					#await self.controller_loop
 				
-			time.sleep(2)
+			
 			
 			
 			
@@ -520,7 +621,7 @@ class Led_Controller:
 			new_color_tup = new_color_tup + (new_color,)
 		return new_color_tup
 
-	def adjust_brightness(self, event_state, color_str): #color str = "red", "green", "blue" or "all three"
+	def adjust_brightness(self, event_state, color_str, ): #color str = "red", "green", "blue" or "all three"
 		if self.selection == None:
 			return None
 		current_color = self.pwm.get_current_color(self.selection)
@@ -549,7 +650,7 @@ class Led_Controller:
 
 	def setup_blink_lights(self, direction):
 
-		self.x += 1
+		
 		self.start = dt.now()
 		self.start = dt.now()
 		#print(self.dv_lst_subsc, 'subsc')
