@@ -76,6 +76,37 @@ class Led_Controller:
 		self.mode_color_dict = {}
 		self.off_color_dict = {}
 		self.mode_button_pressed = False
+<<<<<<< HEAD
+		self.reserved_btns = ["ABS_X", "ABS_Y","ABS_RX", "ABS_RY", 'SYN_REPORT', "SYN_DROPPED", "BTN_THUMBL", "BTN_SELECT", "BTN_START", "BTN_NORTH", "BTN_SOUTH", "BTN_EAST"]
+		for devices in self.pwm.device_lst:
+			self.blink_lights(device, (1000, 0, 500))
+		while True:
+
+			self.events = get_gamepad()
+			if self.unlock and dt.now() > self.unlock_time + datetime.timedelta(seconds = 10):
+				self.unlock = False
+			if self.start_btn and dt.now() > self.start_btn_time + datetime.timedelta(seconds = 3):
+				self.start_btn = False
+			if self.freeze_buttons and dt.now() > self.freeze_time + datetime.timedelta(seconds = 1):
+				self.freeze_buttons = False
+
+
+			for event in self.events: #iterate through any event triggered by the gamepad
+				#print("type:", event.ev_type, "event code:", event.code, "state:", event.state)
+
+				if event.code == "ABS_X" and event.state > 30000 and self.freeze_buttons == False: #state > 9000 means the joystick is over to the right far
+					if self.unlock: self.unlock_time = dt.now()
+					if self.x > 0 and ((dt.now() - self.start) > (datetime.timedelta(seconds = 1))):
+						#self.x = 0
+						print('resetting')
+						self.start = dt.now()
+						self.setup_blink_lights("forward")
+						break
+
+					if self.x > 0 and ((dt.now() - self.start) < (datetime.timedelta(seconds = .8))): # if the data comes within .8 seconds, ignore it
+						#print("breaking")
+						break
+=======
 		self.btn_west = False
 		self.bumpers_pressed = False
 		self.off_locked = True
@@ -136,6 +167,7 @@ class Led_Controller:
 					print(self.start,'start')
 					print('resetting')
 					self.start = dt.now()
+>>>>>>> 4b084a72e4225e44d83d4ad6db3375dee7a83278
 					self.setup_blink_lights("forward")
 					break
 			#scroll with left joystick to the left
